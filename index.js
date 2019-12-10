@@ -12,9 +12,12 @@ const CHECK_TIMEOUT = 60e3;
 const STATUS_EL = document.querySelector('#status');
 const SCENE_INFO_EL = document.querySelector('#scene-info');
 const SCENE_NAME_EL = document.querySelector('#scene-name');
+const SCENE_TARGET_EL = document.querySelector('#scene-target');
 
 let rendering = false;
 let camera, scene, renderer, group, controls;
+let raycaster = new THREE.Raycaster();
+let mouseVector = new THREE.Vector3();
 
 init().catch(err => showStatus(err.message));
 
@@ -44,8 +47,10 @@ async function init() {
   scene.background = new THREE.Color(0x000000);
   // scene.fog = new THREE.Fog(0xffffff, 1, 10000);
 
-  let xyzAxes = new THREE.AxesHelper(2000);
-  scene.add(xyzAxes);
+  if (DEBUG) {
+    let xyzAxes = new THREE.AxesHelper(2000);
+    scene.add(xyzAxes);
+  }
 
   group = new THREE.Group();
 
@@ -64,6 +69,7 @@ async function init() {
 
     mesh.matrixAutoUpdate = false;
     mesh.updateMatrix();
+    mesh.userData = sb;
     group.add(mesh);
   }
 
@@ -78,9 +84,12 @@ async function init() {
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  let rsize = getRenderAreaSize();
+  renderer.setSize(rsize.width, rsize.height);
   document.body.appendChild(renderer.domElement);
   window.addEventListener('resize', onWindowResize, false);
+  renderer.domElement.addEventListener('click', onMouseClick, false);
+  renderer.domElement.addEventListener('touchstart', onMouseClick, false);
 
   initControls();
   render();
@@ -135,14 +144,47 @@ function getBoundaryBox(tm3d) {
 }
 
 function onWindowResize() {
-  windowHalfX = window.innerWidth / 2;
-  windowHalfY = window.innerHeight / 2;
+  let rsize = getRenderAreaSize();
 
-  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = rsize.width / rsize.height;
   camera.updateProjectionMatrix();
 
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(rsize.width, rsize.height);
   requestAnimationFrame(render);
+}
+
+function onMouseClick(event) {
+  event.preventDefault();
+
+  let rsize = getRenderAreaSize();
+  let [cx, cy] = getCoordinates(event);
+
+  let x = (cx / rsize.width) * 2 - 1;
+  let y = - (cy / rsize.height) * 2 + 1;
+
+  mouseVector.set(x, y, 0.5);
+
+  raycaster.setFromCamera(mouseVector, camera);
+  let intersects = raycaster.intersectObject(group, true);
+  let targets = intersects.filter(x => x && x.object);
+  if (!targets.length) return;
+  let target = targets[0];
+  SCENE_TARGET_EL.textContent = target.object.userData.label;
+}
+
+function getCoordinates(event) {
+  let x = event.clientX;
+  let y = event.clientY;
+
+  if (event.touches) {
+    let t = event.touches[0];
+    if (t) {
+      x = t.clientX;
+      y = t.clientY;
+    }
+  }
+
+  return [x, y];
 }
 
 function render() {
@@ -177,10 +219,11 @@ function showSceneInfo(tm3d, bbox) {
 }
 
 function showSceneName() {
+  document.title = JSON_SRC + ' - ' + document.title;
   SCENE_NAME_EL.textContent = JSON_SRC;
   SCENE_NAME_EL.onblur = () => {
     let src = SCENE_NAME_EL.textContent.trim();
-    if (src && src != JSON_SRC)
+    if (src != JSON_SRC)
       location.search = '?' + src;
   };
 }
@@ -189,7 +232,7 @@ async function downloadJson() {
   let time0 = Date.now();
 
   while (Date.now() < time0 + CHECK_TIMEOUT) {
-    let resp = await fetch(JSON_URL);
+    let resp = await fetch(JSON_URL.toLowerCase());
     let info = resp.status + ' ' + resp.statusText;
 
     if (resp.status >= 400)
@@ -207,4 +250,10 @@ async function downloadJson() {
   }
 
   throw new Error('Timed out');
+}
+
+function getRenderAreaSize() {
+  let width = document.body.clientWidth;
+  let height = document.body.clientHeight;
+  return { width, height };
 }

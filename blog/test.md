@@ -1,6 +1,13 @@
 Image:
 ![](test.dot)
 
+Jekyll:
+{% graph non-directed graph %}
+a -- b
+b -- c
+c -- a
+{% endgraph %}
+
 Inlined:
 ```dot
 digraph {

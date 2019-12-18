@@ -1,0 +1,55 @@
+digraph {
+  node [shape=box];
+
+  uri [label="github:foo/bar",style="rounded,filled"];
+  uri_2 [label="hn:21817034",style="rounded,filled,dashed"];
+  git [label="git clone - clones the\nrepo into a tmpfs dir"];
+  tsc [label="ts-ast.js - uses the\nTS Compiler API\nto parse ts/js files"];
+  hn [style=dashed,label="hn.js - parses comments from\nthe news.ycombinator.com html\npages to generate AST-like trees"];
+  wget [style=dashed];
+
+  uri -> git;
+  git -> tsc [label="js/ts files"];
+  
+  subgraph cluster_tsc {
+    label="git+js ingestor";
+    style=dotted;
+    git; tsc;
+  }
+
+  uri_2 -> wget;
+  wget -> hn [label="index.html"];
+
+  subgraph cluster_hn {
+    label="html+hn ingestor";
+    style=dotted;
+    wget; hn;
+  }
+
+  d3 [label="d3.treemap - applies one of the treemap\nlayout algorithms that aims to preserve\nthe golden ratio of each rectangle"];
+  tm3d [label="tm3d.js - converts the\ntreemap layout into\na flat list of 3d boxes"];
+  web [label="three.js+WebGL"];
+  img [style=dashed,label="img3d.js - uses a basic\nrenderer to generate\na still image"];
+  ffmpeg [style=dashed,label="ffmpeg can be used to\nconcat multiple images\ninto a mp4 animation"];
+
+  tsc -> d3;
+  hn -> d3 [label="vast.json - an AST-like tree\nwith 'size' for each node"];
+  d3 -> tm3d [label="treemap.json"];
+  tm3d -> {web,img};
+  img -> ffmpeg;
+
+  { rank=same; web; img; }
+
+  webapp [label="An interactive\nWebGL app",style="rounded,filled"];
+  mp4 [label="animation.mp4",style="rounded,filled,dashed"];
+  png [label="image.png",style="rounded,filled,dashed"];
+
+  web -> webapp;
+  img -> png;
+  ffmpeg -> mp4;
+
+  subgraph cluster_res {
+    style=dotted;
+    webapp; mp4; png;
+  }
+}

@@ -10,4 +10,6 @@ Comment trees can be rendered as treemaps too. Here I replaced the TypeScript pa
 
 ![](hn-2.png)
 
-See it in action: https://iswaac.dev/?hn:21840140
+See it in action: [iswaac.dev/?hn:21840140](https://iswaac.dev/?hn:21840140).
+
+Bookmarklet: `javascript:location.href="https://iswaac.dev?hn:"+/\d+$/.exec(location.href)[0]`
